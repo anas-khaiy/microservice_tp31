@@ -1,11 +1,17 @@
-FROM maven:3.8.4-openjdk-17 AS builder
+# Stage 1: Build
+FROM maven:3.9.9-eclipse-temurin-17 AS builder
 WORKDIR /app
-COPY ./src ./src
-COPY ./pom.xml .
+
+COPY pom.xml .
+RUN mvn dependency:go-offline
+
+COPY src ./src
 RUN mvn clean package -DskipTests
 
-FROM openjdk:17-jdk-alpine
-VOLUME /tmp
-ARG JAR_FILE=target/*.jar
-COPY ${JAR_FILE} client-service.jar
-ENTRYPOINT ["java","-jar","/client-service.jar"]
+# Stage 2: Run
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
+
+COPY --from=builder /app/target/*.jar client-service.jar
+
+ENTRYPOINT ["java", "-jar", "client-service.jar"]
